@@ -56,19 +56,35 @@ The app will open at `http://localhost:3000`
 
 Ensure your backend API is running at `http://localhost:8000`
 
-## How to Use
+## How to Use - Wizard Experience
 
-1. **Upload Script**: Click or drag & drop your .doc/.docx file
-2. **Customize Style** (Optional): Click "Customize Visual Style" to choose:
-   - Art style (realistic, anime, cartoon, etc.)
-   - Lighting (natural, dramatic, studio, etc.)
-   - Color palette (warm, vibrant, muted, etc.)
-   - Background type
-   - Character description
-   - Camera angles & framing
-3. **Wait for Processing**: The AI will analyze your script and generate visuals
-4. **View Results**: Browse your generated storyboard with cost breakdown
-5. **Regenerate**: Click "Regenerate" on any scene to create a new image
+The app now uses a 4-step wizard flow for better control:
+
+### Step 1: Upload Script
+- Click or drag & drop your .doc/.docx file
+- (Optional) Click "Customize Visual Style" to configure:
+  - Art style (realistic, anime, cartoon, etc.)
+  - Lighting (natural, dramatic, studio, etc.)
+  - Color palette (warm, vibrant, muted, etc.)
+  - Background, character description, camera angles
+  - Aspect ratio (16:9, 9:16, 1:1, etc.)
+
+### Step 2: Review Director's Plans ⭐ NEW!
+- AI Director analyzes your script's narrative structure
+- See emotional tone, energy level, camera intent for each scene
+- View props and setting recommendations
+- **Approve** to continue to generation
+
+### Step 3: Generate Visuals
+- Watch as AI creates detailed prompts and images
+- Real-time progress updates
+- See cost accumulating
+
+### Step 4: View Results
+- Browse your completed storyboard
+- See total cost breakdown
+- Regenerate individual scenes
+- Create new storyboard
 
 ## Project Structure
 

@@ -1,10 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Upload, FileText, Sparkles, Palette } from 'lucide-react';
+import { Upload, FileText, Sparkles, Palette, Type } from 'lucide-react';
 
-function FileUpload({ onFileUpload }) {
+function FileUpload({ onFileUpload, onTextSubmit }) {
   const [isDragging, setIsDragging] = useState(false);
+  const [inputMode, setInputMode] = useState('file'); // 'file' or 'text'
+  const [scriptText, setScriptText] = useState('');
   const fileInputRef = useRef(null);
 
   const handleDragEnter = (e) => {
@@ -65,10 +67,45 @@ function FileUpload({ onFileUpload }) {
     fileInputRef.current?.click();
   };
 
+  const handleTextSubmit = () => {
+    if (!scriptText.trim()) {
+      alert('Please enter your script text');
+      return;
+    }
+
+    if (scriptText.length < 50) {
+      alert('Script is too short. Please enter at least 50 characters.');
+      return;
+    }
+
+    onTextSubmit(scriptText.trim());
+  };
+
   return (
     <div className="space-y-8">
+      {/* Mode Toggle */}
+      <div className="flex justify-center gap-2 p-1 bg-gray-100 rounded-lg w-fit mx-auto">
+        <Button
+          variant={inputMode === 'file' ? 'default' : 'ghost'}
+          onClick={() => setInputMode('file')}
+          className="gap-2"
+        >
+          <Upload className="w-4 h-4" />
+          Upload File
+        </Button>
+        <Button
+          variant={inputMode === 'text' ? 'default' : 'ghost'}
+          onClick={() => setInputMode('text')}
+          className="gap-2"
+        >
+          <Type className="w-4 h-4" />
+          Paste Script
+        </Button>
+      </div>
+
       {/* Upload Area */}
-      <Card
+      {inputMode === 'file' ? (
+        <Card
         className={`cursor-pointer transition-all duration-300 bg-white/95 backdrop-blur hover:shadow-lg hover:-translate-y-1 ${
           isDragging ? 'border-primary border-2 bg-primary/5 scale-102' : ''
         }`}
@@ -113,6 +150,66 @@ function FileUpload({ onFileUpload }) {
           </div>
         </CardContent>
       </Card>
+      ) : (
+        /* Text Input Area */
+        <Card className="bg-white/95 backdrop-blur">
+          <CardContent className="p-8 md:p-12">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
+                  <Type className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-semibold">Paste Your Script</h3>
+                  <p className="text-muted-foreground">
+                    Copy and paste your YouTube script below
+                  </p>
+                </div>
+              </div>
+
+              <textarea
+                value={scriptText}
+                onChange={(e) => setScriptText(e.target.value)}
+                placeholder="Paste your script here...
+
+Example:
+Welcome to my channel. Today we're talking about productivity.
+First, let's discuss time management.
+Then we'll explore effective habits.
+Finally, I'll share my top tips.
+"
+                className="w-full min-h-[300px] p-4 border-2 rounded-lg resize-vertical font-mono text-sm focus:outline-none focus:border-primary transition-colors"
+              />
+
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {scriptText.length > 0 ? (
+                    <>
+                      {scriptText.length} characters
+                      {scriptText.length < 50 && (
+                        <span className="text-orange-500 ml-2">
+                          (minimum 50 characters)
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    'Minimum 50 characters required'
+                  )}
+                </p>
+                <Button
+                  size="lg"
+                  onClick={handleTextSubmit}
+                  disabled={scriptText.length < 50}
+                  className="text-lg px-8"
+                >
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Generate Visuals
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -122,9 +219,9 @@ function FileUpload({ onFileUpload }) {
               <FileText className="w-8 h-8 text-primary" />
             </div>
             <div className="space-y-2">
-              <h4 className="text-xl font-semibold">1. Upload Script</h4>
+              <h4 className="text-xl font-semibold">1. Add Script</h4>
               <p className="text-muted-foreground">
-                Upload your YouTube script as a .docx file
+                Upload a .docx file or paste your text directly
               </p>
             </div>
           </CardContent>

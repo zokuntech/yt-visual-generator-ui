@@ -1,7 +1,7 @@
 import React from 'react';
 import SceneCard from './SceneCard';
 
-function SceneGrid({ scenes, onRegenerateImage }) {
+function SceneGrid({ scenes, onRegenerateImage, onApproveScene, onEditScene, approvedScenes }) {
   console.log('🎬 SceneGrid rendering:', {
     numberOfScenes: scenes.length,
     sceneIds: scenes.map(s => s.id),
@@ -20,6 +20,8 @@ function SceneGrid({ scenes, onRegenerateImage }) {
           scene={scene}
           index={index}
           onRegenerateImage={onRegenerateImage}
+          onApproveScene={onApproveScene}
+          onEditScene={onEditScene}
         />
       ))}
     </div>

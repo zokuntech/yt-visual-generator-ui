@@ -19,6 +19,9 @@ function App() {
   const [currentJob, setCurrentJob] = useState(null);
   const [error, setError] = useState(null);
   const [showStyleConfig, setShowStyleConfig] = useState(false);
+  const [completionTime, setCompletionTime] = useState(null);
+  const [approvedScenes, setApprovedScenes] = useState(new Set());
+  const [clientStartTime, setClientStartTime] = useState(null);
   const [styleConfig, setStyleConfig] = useState({
     art_style: 'realistic',
     lighting: 'natural_lighting',
@@ -27,7 +30,8 @@ function App() {
     character_description: '',
     camera_angle: 'medium_shot',
     framing: 'centered',
-    aspect_ratio: '16:9'
+    aspect_ratio: '16:9',
+    preferred_settings: []  // New: custom location selection
   });
 
   // Log app initialization
@@ -67,50 +71,8 @@ function App() {
 
       setProgress(20);
       
-      // Create job
-      setStatus('creating');
-      console.log('🚀 Creating job on backend...');
-      console.log('🌐 API URL:', API_URL);
-      
-      const requestBody = {
-        script_text: text,
-        generate_images: true,
-        style_config: styleConfig
-      };
-      console.log('📤 Request body:', {
-        script_text: text.substring(0, 100) + '...',
-        generate_images: requestBody.generate_images,
-        style_config: requestBody.style_config
-      });
-
-      const jobResponse = await fetch(`${API_URL}/jobs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      });
-
-      console.log('📥 Response status:', jobResponse.status, jobResponse.statusText);
-
-      if (!jobResponse.ok) {
-        const errorData = await jobResponse.json();
-        console.error('❌ Job creation failed:', errorData);
-        throw new Error(errorData.detail || 'Failed to create job');
-      }
-
-      const job = await jobResponse.json();
-      console.log('✅ Job created successfully!');
-      console.log('🆔 Job ID:', job.id);
-      console.log('📊 Job status:', job.status);
-      console.log('🎨 Style config:', job.options?.style_config);
-      console.log('🔧 Job details:', job);
-      
-      setCurrentJobId(job.id);
-      setCurrentJob(job);
-      setProgress(30);
-
-      // Start polling
-      console.log('🔄 Starting polling for job status...');
-      pollJob(job.id);
+      // Continue with job creation
+      await createJobWithText(text);
     } catch (err) {
       console.error('❌ ===== ERROR IN FILE UPLOAD =====');
       console.error('Error name:', err.name);
@@ -123,10 +85,87 @@ function App() {
     }
   };
 
+  const handleTextSubmit = async (text) => {
+    console.log('📝 ===== TEXT INPUT STARTED =====');
+    console.log('📝 Text length:', text.length, 'characters');
+    console.log('📝 First 200 characters:', text.substring(0, 200) + '...');
+    
+    try {
+      setError(null);
+      setProgress(10);
+      
+      // No extraction needed, text is already provided
+      await createJobWithText(text);
+    } catch (err) {
+      console.error('❌ ===== ERROR IN TEXT SUBMISSION =====');
+      console.error('Error message:', err.message);
+      console.error('Full error:', err);
+      setError(err.message);
+      setStatus('error');
+      setProgress(0);
+    }
+  };
+
+  const createJobWithText = async (text) => {
+    // Create job
+    setStatus('creating');
+    console.log('🚀 Creating job on backend...');
+    console.log('🌐 API URL:', API_URL);
+    
+    const requestBody = {
+      script_text: text,
+      wizard_mode: false,  // ← Disable wizard, go straight through
+      generate_images: true,
+      style_config: styleConfig
+    };
+    console.log('📤 Request body:', {
+      script_text: text.substring(0, 100) + '...',
+      wizard_mode: requestBody.wizard_mode,
+      generate_images: requestBody.generate_images,
+      style_config: requestBody.style_config
+    });
+
+    const jobResponse = await fetch(`${API_URL}/jobs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    });
+
+    console.log('📥 Response status:', jobResponse.status, jobResponse.statusText);
+
+    if (!jobResponse.ok) {
+      const errorData = await jobResponse.json();
+      console.error('❌ Job creation failed:', errorData);
+      throw new Error(errorData.detail || 'Failed to create job');
+    }
+
+    const job = await jobResponse.json();
+    console.log('✅ Job created successfully!');
+    console.log('🆔 Job ID:', job.id);
+    console.log('📊 Job status:', job.status);
+    console.log('⏱️ Job created at (backend):', job.created_at || 'not provided');
+    console.log('🎨 Style config:', job.options?.style_config);
+    console.log('🔧 Job details:', job);
+    
+    // Start client-side timer as fallback
+    const startTime = Date.now();
+    setClientStartTime(startTime);
+    console.log('⏱️ Client timer started:', new Date(startTime).toLocaleTimeString());
+    
+    setCurrentJobId(job.id);
+    setCurrentJob(job);
+    setProgress(30);
+
+    // Start polling
+    console.log('🔄 Starting polling for job status...');
+    pollJob(job.id);
+  };
+
   const pollJob = async (jobId) => {
     let pollCount = 0;
-    const maxPolls = 150; // 5 minutes max (150 * 2 seconds)
-    console.log('🔄 Polling started for job:', jobId);
+    const maxPolls = 300; // 10 minutes max
+    console.log('🔄 ===== POLLING STARTED =====');
+    console.log('📋 Job ID:', jobId);
 
     const interval = setInterval(async () => {
       try {
@@ -134,9 +173,9 @@ function App() {
         console.log(`📊 Poll #${pollCount} - Checking job status...`);
         
         if (pollCount > maxPolls) {
+          console.error('⏱️ TIMEOUT: Job timed out after 10 minutes');
           clearInterval(interval);
-          console.error('⏱️ Job timed out after 5 minutes (150 polls)');
-          setError('Job timed out after 5 minutes');
+          setError('Job timed out after 10 minutes');
           setStatus('error');
           return;
         }
@@ -145,19 +184,24 @@ function App() {
         console.log('📥 Poll response status:', response.status);
         
         if (!response.ok) {
-          throw new Error('Failed to fetch job status');
+          throw new Error(`Failed to fetch job status: ${response.status}`);
         }
 
         const job = await response.json();
-        console.log('📊 Current job status:', job.status);
-        console.log('💰 Current cost:', job.cost);
-        console.log('📦 Job data:', job);
+        console.log('📦 Job status:', job.status);
+        console.log('💰 Cost so far:', job.cost?.total_cost || 0);
         
         setCurrentJob(job);
         setStatus(job.status);
 
         // Update progress based on status
-        if (job.status === 'generating_prompts') {
+        if (job.status === 'analyzing_script') {
+          console.log('🎬 Director analyzing script...');
+          setProgress(30);
+        } else if (job.status === 'generating_visuals') {
+          console.log('🎥 Creating visual prompts...');
+          setProgress(50);
+        } else if (job.status === 'generating_prompts') {
           console.log('🤖 AI is generating visual prompts...');
           setProgress(50);
         } else if (job.status === 'generating_images') {
@@ -166,18 +210,76 @@ function App() {
         }
 
         if (job.status === 'completed') {
-          console.log('✅ Job completed successfully!');
-          console.log('🎬 Scene IDs:', job.scene_ids);
+          console.log('✅ ===== JOB COMPLETED! =====');
+          console.log('🛑 Stopping polling interval');
           clearInterval(interval);
+          
+          // Calculate completion time (prioritize backend duration_seconds)
+          console.log('🔍 Checking job timing data...');
+          console.log('📦 Full job object:', JSON.stringify(job, null, 2));
+          
+          let duration = null;
+          
+          // Priority 1: Use duration_seconds from backend (most accurate)
+          if (job.duration_seconds != null) {
+            duration = job.duration_seconds * 1000; // Convert to milliseconds
+            setCompletionTime(duration);
+            console.log('⏱️ ✅ Using backend duration_seconds:', job.duration_seconds, 'seconds');
+            console.log('⏱️ Formatted:', formatDuration(duration));
+          }
+          // Priority 2: Calculate from started_at/completed_at timestamps
+          else if (job.started_at && job.completed_at) {
+            const startTime = new Date(job.started_at).getTime();
+            const endTime = new Date(job.completed_at).getTime();
+            duration = endTime - startTime;
+            setCompletionTime(duration);
+            console.log('⏱️ Job started:', job.started_at);
+            console.log('⏱️ Job completed:', job.completed_at);
+            console.log('⏱️ Calculated duration:', formatDuration(duration));
+          }
+          // Priority 3: Calculate from created_at/completed_at timestamps
+          else if (job.created_at && job.completed_at) {
+            const startTime = new Date(job.created_at).getTime();
+            const endTime = new Date(job.completed_at).getTime();
+            duration = endTime - startTime;
+            setCompletionTime(duration);
+            console.log('⏱️ Job created:', job.created_at);
+            console.log('⏱️ Job completed:', job.completed_at);
+            console.log('⏱️ Calculated duration:', formatDuration(duration));
+          }
+          // Priority 4: Check for processing_time_ms
+          else if (job.processing_time_ms) {
+            duration = job.processing_time_ms;
+            setCompletionTime(duration);
+            console.log('⏱️ Used processing_time_ms:', formatDuration(duration));
+          }
+          // Priority 5: Fallback to client-side timer (least accurate)
+          else if (clientStartTime) {
+            const clientEndTime = Date.now();
+            duration = clientEndTime - clientStartTime;
+            setCompletionTime(duration);
+            console.log('⏱️ ⚠️ Using client-side timer (fallback):', formatDuration(duration));
+            console.log('💡 Note: This is approximate. Backend should send duration_seconds');
+          }
+          // No timing data available
+          else {
+            console.warn('⚠️ No timing data available from backend');
+            console.log('⚠️ Available job fields:', Object.keys(job));
+            console.log('💡 Backend should send: duration_seconds, started_at, or completed_at');
+          }
+          
+          console.log('📥 Fetching scenes from /scenes/job/' + jobId);
           setProgress(90);
+          
           await loadScenes(jobId);
+          
           setProgress(100);
           setStatus('completed');
           console.log('🎉 ===== PROCESS COMPLETE =====');
         }
 
         if (job.status === 'failed') {
-          console.error('❌ Job failed!');
+          console.error('❌ JOB FAILED!');
           console.error('Error message:', job.error_message);
           clearInterval(interval);
           setError(job.error_message || 'Job failed');
@@ -185,8 +287,8 @@ function App() {
           setProgress(0);
         }
       } catch (err) {
-        console.error('❌ Polling error:', err);
-        console.error('Poll count:', pollCount);
+        console.error('❌ POLLING ERROR:', err);
+        console.error('Details:', err.message);
         clearInterval(interval);
         setError(err.message);
         setStatus('error');
@@ -195,24 +297,39 @@ function App() {
   };
 
   const loadScenes = async (jobId) => {
-    console.log('🎬 Loading scenes for job:', jobId);
+    console.log('🎬 ===== LOADING SCENES =====');
+    console.log('📥 Fetching from:', `${API_URL}/scenes/job/${jobId}`);
+    
     try {
       const response = await fetch(`${API_URL}/scenes/job/${jobId}`);
       console.log('📥 Scenes response status:', response.status);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch scenes');
+        const errorText = await response.text();
+        console.error('❌ Failed to fetch scenes:', errorText);
+        throw new Error(`Failed to fetch scenes: ${response.status}`);
       }
 
       const scenesData = await response.json();
-      console.log('✅ Scenes loaded successfully!');
+      console.log('✅ SCENES LOADED SUCCESSFULLY!');
       console.log('📊 Number of scenes:', scenesData.length);
-      console.log('🎬 Scenes data:', scenesData);
+      console.log('🎬 Scene data preview:', scenesData.slice(0, 2));
+      
+      // Log each scene's image status
+      scenesData.forEach((scene, idx) => {
+        console.log(`Scene ${idx + 1}:`, {
+          id: scene.id.substring(0, 8),
+          status: scene.image_status,
+          hasImage: !!scene.image_url,
+          imageLength: scene.image_url?.length || 0
+        });
+      });
       
       setScenes(scenesData);
+      console.log('✅ Scenes set in React state');
     } catch (err) {
-      console.error('❌ Error loading scenes:', err);
-      console.error('Full error:', err);
+      console.error('❌ ERROR LOADING SCENES:', err);
+      console.error('Error details:', err.message);
       setError(err.message);
     }
   };
@@ -292,7 +409,73 @@ function App() {
     setCurrentJobId(null);
     setCurrentJob(null);
     setError(null);
+    setCompletionTime(null);
+    setApprovedScenes(new Set());
+    setClientStartTime(null);
     console.log('✅ App reset complete');
+  };
+
+  const handleApproveScene = (sceneId, isApproved) => {
+    console.log(`${isApproved ? '❤️' : '💔'} Scene ${sceneId} ${isApproved ? 'approved' : 'unapproved'}`);
+    setApprovedScenes(prev => {
+      const newSet = new Set(prev);
+      if (isApproved) {
+        newSet.add(sceneId);
+      } else {
+        newSet.delete(sceneId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleEditScene = async (sceneId, editData) => {
+    console.log('✏️ Editing scene:', sceneId);
+    console.log('📝 Edit instructions:', editData.editInstructions);
+    
+    try {
+      // Update scene status to pending
+      setScenes(prevScenes => 
+        prevScenes.map(scene => 
+          scene.id === sceneId 
+            ? { ...scene, image_status: 'pending' } 
+            : scene
+        )
+      );
+
+      // Call the new instruction-based endpoint
+      const response = await fetch(`${API_URL}/scenes/${sceneId}/regenerate-with-instruction`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instruction: editData.editInstructions
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to regenerate with edits');
+      }
+
+      console.log('✅ Scene edit submitted with instruction, regenerating...');
+      console.log('🔄 Instruction:', editData.editInstructions);
+      pollSceneUpdate(sceneId);
+      
+    } catch (err) {
+      console.error('❌ Error editing scene:', err);
+      setError(err.message);
+    }
+  };
+
+  // Helper function to format duration
+  const formatDuration = (ms) => {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (minutes > 0) {
+      return `${minutes}m ${remainingSeconds}s`;
+    }
+    return `${seconds}s`;
   };
 
   return (
@@ -334,7 +517,7 @@ function App() {
         {/* Main Content */}
         {status === 'idle' && (
           <>
-            <FileUpload onFileUpload={handleFileUpload} />
+            <FileUpload onFileUpload={handleFileUpload} onTextSubmit={handleTextSubmit} />
             
             {/* Style Configuration (Optional) */}
             <div className="mt-6">
@@ -376,9 +559,19 @@ function App() {
           <>
             <Card className="mb-6 bg-white/95 backdrop-blur">
               <div className="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <h2 className="text-2xl font-semibold text-primary">
-                  Your Storyboard ({scenes.length} scenes)
-                </h2>
+                <div>
+                  <h2 className="text-2xl font-semibold text-primary">
+                    Your Storyboard ({scenes.length} scenes)
+                  </h2>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                    {completionTime && (
+                      <span>⏱️ Generated in {formatDuration(completionTime)}</span>
+                    )}
+                    {approvedScenes.size > 0 && (
+                      <span>❤️ {approvedScenes.size} approved</span>
+                    )}
+                  </div>
+                </div>
                 <Button onClick={handleReset} variant="outline">
                   Upload New Script
                 </Button>
@@ -388,13 +581,16 @@ function App() {
             {/* Cost Display */}
             {currentJob?.cost && (
               <div className="mb-6">
-                <CostDisplay cost={currentJob.cost} />
+                <CostDisplay cost={currentJob.cost} completionTime={completionTime} />
               </div>
             )}
             
             <SceneGrid 
               scenes={scenes} 
               onRegenerateImage={regenerateImage}
+              onApproveScene={handleApproveScene}
+              onEditScene={handleEditScene}
+              approvedScenes={approvedScenes}
             />
           </>
         )}

@@ -2,12 +2,24 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { DollarSign, Sparkles, Image, TrendingUp } from 'lucide-react';
 
-function CostDisplay({ cost }) {
+function CostDisplay({ cost, completionTime }) {
   if (!cost) return null;
 
   const totalCost = cost.total_cost || 0;
   const promptCost = cost.prompt_generation_cost || 0;
   const imageCost = cost.image_generation_cost || 0;
+
+  const formatDuration = (ms) => {
+    if (!ms) return 'N/A';
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (minutes > 0) {
+      return `${minutes}m ${remainingSeconds}s`;
+    }
+    return `${seconds}s`;
+  };
 
   return (
     <Card className="bg-white/95 backdrop-blur">
@@ -15,10 +27,17 @@ function CostDisplay({ cost }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-green-600" />
-            <CardTitle className="text-xl">Cost Breakdown</CardTitle>
+            <CardTitle className="text-xl">Job Summary</CardTitle>
           </div>
-          <div className="text-2xl font-bold text-green-600">
-            ${totalCost.toFixed(4)}
+          <div className="text-right">
+            <div className="text-2xl font-bold text-green-600">
+              ${totalCost.toFixed(4)}
+            </div>
+            {completionTime && (
+              <div className="text-sm text-muted-foreground mt-1">
+                ⏱️ {formatDuration(completionTime)}
+              </div>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -50,17 +69,33 @@ function CostDisplay({ cost }) {
           </div>
         </div>
 
-        {/* Per Scene Cost */}
-        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-blue-600" />
-            <span className="text-sm font-medium">Average per Scene</span>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Per Scene Cost */}
+          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              <span className="text-sm font-medium">Per Scene</span>
+            </div>
+            <span className="text-lg font-semibold text-blue-600">
+              ${cost.num_prompts_generated > 0 
+                ? (totalCost / cost.num_prompts_generated).toFixed(5)
+                : '0.00000'}
+            </span>
           </div>
-          <span className="text-lg font-semibold text-blue-600">
-            ${cost.num_prompts_generated > 0 
-              ? (totalCost / cost.num_prompts_generated).toFixed(5)
-              : '0.00000'}
-          </span>
+
+          {/* Time per Scene */}
+          {completionTime && cost.num_prompts_generated > 0 && (
+            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <span className="text-purple-600">⏱️</span>
+                <span className="text-sm font-medium">Per Scene</span>
+              </div>
+              <span className="text-lg font-semibold text-purple-600">
+                {formatDuration(completionTime / cost.num_prompts_generated)}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Info */}

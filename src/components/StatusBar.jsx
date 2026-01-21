@@ -24,6 +24,24 @@ function StatusBar({ status, progress }) {
           text: 'Job created, waiting to start...',
           color: 'text-yellow-500'
         };
+      case 'analyzing_script':
+        return {
+          icon: Sparkles,
+          text: '🎬 Director analyzing your script...',
+          color: 'text-purple-500'
+        };
+      case 'awaiting_approval':
+        return {
+          icon: Clock,
+          text: '✋ Awaiting your approval...',
+          color: 'text-yellow-500'
+        };
+      case 'generating_visuals':
+        return {
+          icon: Sparkles,
+          text: '🎥 Cinematographer creating visual prompts...',
+          color: 'text-purple-500'
+        };
       case 'generating_prompts':
         return {
           icon: Sparkles,
@@ -33,7 +51,7 @@ function StatusBar({ status, progress }) {
       case 'generating_images':
         return {
           icon: Palette,
-          text: 'AI is creating images for your scenes...',
+          text: '🖼️ AI is generating images for your scenes...',
           color: 'text-pink-500'
         };
       case 'completed':

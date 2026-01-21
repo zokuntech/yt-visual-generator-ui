@@ -344,6 +344,76 @@ function StyleConfig({ value, onChange }) {
           </p>
         </div>
 
+        {/* Preferred Settings/Locations */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">🎬 Preferred Locations (Optional)</label>
+          <p className="text-xs text-muted-foreground mb-2">
+            Select 4-8 locations for variety. Leave empty for AI to choose automatically.
+          </p>
+          <div className="max-h-64 overflow-y-auto border rounded-lg p-3 bg-white space-y-2">
+            {[
+              { category: "☕ Public Spaces", items: [
+                { value: "coffee_shop_by_window", label: "Coffee Shop" },
+                { value: "library_study_area", label: "Library" },
+                { value: "gym_workout_area", label: "Gym" },
+                { value: "restaurant_table", label: "Restaurant" },
+                { value: "shopping_mall_corridor", label: "Mall" },
+              ]},
+              { category: "🏠 Interior", items: [
+                { value: "bedroom_at_desk", label: "Bedroom Desk" },
+                { value: "cozy_living_room", label: "Living Room" },
+                { value: "home_office", label: "Home Office" },
+                { value: "kitchen_counter", label: "Kitchen" },
+              ]},
+              { category: "💼 Work/School", items: [
+                { value: "modern_office_desk", label: "Office" },
+                { value: "conference_room", label: "Conference Room" },
+                { value: "empty_classroom", label: "Classroom" },
+                { value: "campus_quad", label: "Campus" },
+              ]},
+              { category: "🌳 Outdoor", items: [
+                { value: "park_bench_under_tree", label: "Park Bench" },
+                { value: "city_street_sidewalk", label: "City Street" },
+                { value: "rooftop", label: "Rooftop" },
+                { value: "beach", label: "Beach" },
+                { value: "walking_path_in_park", label: "Walking Path" },
+              ]},
+            ].map((section, idx) => (
+              <div key={idx} className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground">{section.category}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {section.items.map((location) => (
+                    <label
+                      key={location.value}
+                      className="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-50 p-1 rounded"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={(value.preferred_settings || []).includes(location.value)}
+                        onChange={(e) => {
+                          const currentSettings = value.preferred_settings || [];
+                          if (e.target.checked) {
+                            handleChange('preferred_settings', [...currentSettings, location.value]);
+                          } else {
+                            handleChange('preferred_settings', currentSettings.filter(s => s !== location.value));
+                          }
+                        }}
+                        className="rounded border-gray-300"
+                      />
+                      <span>{location.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          {(value.preferred_settings || []).length > 0 && (
+            <p className="text-xs text-green-600">
+              ✓ {value.preferred_settings.length} location{value.preferred_settings.length !== 1 ? 's' : ''} selected
+            </p>
+          )}
+        </div>
+
         {/* Helpful Tip */}
         <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
           <p className="font-semibold mb-1">💡 Pro Tip:</p>
