@@ -1,13 +1,14 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { DollarSign, Sparkles, Image, TrendingUp } from 'lucide-react';
+import { DollarSign, Sparkles, Image, TrendingUp, Film } from 'lucide-react';
 
-function CostDisplay({ cost, completionTime }) {
+function CostDisplay({ cost, completionTime, isLive }) {
   if (!cost) return null;
 
   const totalCost = cost.total_cost || 0;
   const promptCost = cost.prompt_generation_cost || 0;
   const imageCost = cost.image_generation_cost || 0;
+  const videoCost = cost.video_generation_cost || 0;
 
   const formatDuration = (ms) => {
     if (!ms) return 'N/A';
@@ -27,7 +28,14 @@ function CostDisplay({ cost, completionTime }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-green-600" />
-            <CardTitle className="text-xl">Job Summary</CardTitle>
+            <CardTitle className="text-xl">
+              Job Summary
+              {isLive && (
+                <span className="ml-2 text-xs font-normal text-green-600 animate-pulse">
+                  ● Live
+                </span>
+              )}
+            </CardTitle>
           </div>
           <div className="text-right">
             <div className="text-2xl font-bold text-green-600">
@@ -43,7 +51,7 @@ function CostDisplay({ cost, completionTime }) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Cost Breakdown */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Prompt Generation */}
           <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
             <Sparkles className="w-8 h-8 text-purple-600" />
@@ -64,6 +72,18 @@ function CostDisplay({ cost, completionTime }) {
               <p className="text-lg font-semibold">${imageCost.toFixed(4)}</p>
               <p className="text-xs text-muted-foreground">
                 {cost.num_images_generated || 0} images • {cost.image_tokens_used?.toLocaleString() || 0} tokens
+              </p>
+            </div>
+          </div>
+
+          {/* Video Generation */}
+          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+            <Film className="w-8 h-8 text-blue-600" />
+            <div>
+              <p className="text-sm text-muted-foreground">AI Videos</p>
+              <p className="text-lg font-semibold">${videoCost.toFixed(4)}</p>
+              <p className="text-xs text-muted-foreground">
+                {cost.num_videos_generated || 0} videos • 8s each
               </p>
             </div>
           </div>

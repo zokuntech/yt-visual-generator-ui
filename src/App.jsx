@@ -22,6 +22,7 @@ function App() {
   const [completionTime, setCompletionTime] = useState(null);
   const [approvedScenes, setApprovedScenes] = useState(new Set());
   const [clientStartTime, setClientStartTime] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [styleConfig, setStyleConfig] = useState({
     art_style: 'realistic',
     lighting: 'natural_lighting',
@@ -155,10 +156,12 @@ function App() {
     setCurrentJobId(job.id);
     setCurrentJob(job);
     setProgress(30);
+    setIsProcessing(true);
 
     // Start polling
     console.log('🔄 Starting polling for job status...');
     pollJob(job.id);
+    pollCost(job.id);
   };
 
   const pollJob = async (jobId) => {
@@ -213,6 +216,7 @@ function App() {
           console.log('✅ ===== JOB COMPLETED! =====');
           console.log('🛑 Stopping polling interval');
           clearInterval(interval);
+          setIsProcessing(false);
           
           // Calculate completion time (prioritize backend duration_seconds)
           console.log('🔍 Checking job timing data...');
@@ -294,6 +298,44 @@ function App() {
         setStatus('error');
       }
     }, 2000); // Poll every 2 seconds
+  };
+
+  const pollCost = async (jobId) => {
+    console.log('💰 ===== COST POLLING STARTED =====');
+    console.log('📋 Job ID:', jobId);
+
+    const interval = setInterval(async () => {
+      try {
+        // Only poll if still processing
+        if (!isProcessing) {
+          console.log('💰 Cost polling stopped - job complete');
+          clearInterval(interval);
+          return;
+        }
+
+        const response = await fetch(`${API_URL}/jobs/${jobId}/cost`);
+        
+        if (!response.ok) {
+          console.warn('⚠️ Failed to fetch cost, continuing...');
+          return;
+        }
+
+        const costData = await response.json();
+        console.log('💰 Cost update:', costData.total_cost.toFixed(4));
+        
+        // Update job with new cost
+        setCurrentJob(prevJob => ({
+          ...prevJob,
+          cost: costData
+        }));
+      } catch (err) {
+        console.warn('⚠️ Cost polling error:', err.message);
+        // Don't stop polling on error, just log it
+      }
+    }, 3000); // Poll every 3 seconds (less frequent than status)
+
+    // Store interval for cleanup
+    return interval;
   };
 
   const loadScenes = async (jobId) => {
@@ -393,12 +435,42 @@ function App() {
         if (scene.image_status === 'generated' || scene.image_status === 'failed') {
           console.log('✅ Scene regeneration complete:', scene.image_status);
           clearInterval(interval);
+          
+          // Refresh cost after operation completes
+          if (scene.image_status === 'generated') {
+            refreshCost();
+          }
         }
       } catch (err) {
         console.error('❌ Error polling scene:', err);
         clearInterval(interval);
       }
     }, 2000);
+  };
+
+  const refreshCost = async () => {
+    if (!currentJobId) return;
+    
+    try {
+      console.log('💰 Refreshing cost for job:', currentJobId);
+      const response = await fetch(`${API_URL}/jobs/${currentJobId}/cost`);
+      
+      if (!response.ok) {
+        console.warn('⚠️ Failed to refresh cost');
+        return;
+      }
+
+      const costData = await response.json();
+      console.log('💰 Cost refreshed:', costData.total_cost.toFixed(4));
+      
+      // Update job with new cost
+      setCurrentJob(prevJob => ({
+        ...prevJob,
+        cost: costData
+      }));
+    } catch (err) {
+      console.warn('⚠️ Error refreshing cost:', err.message);
+    }
   };
 
   const handleReset = () => {
@@ -412,6 +484,7 @@ function App() {
     setCompletionTime(null);
     setApprovedScenes(new Set());
     setClientStartTime(null);
+    setIsProcessing(false);
     console.log('✅ App reset complete');
   };
 
@@ -581,7 +654,11 @@ function App() {
             {/* Cost Display */}
             {currentJob?.cost && (
               <div className="mb-6">
-                <CostDisplay cost={currentJob.cost} completionTime={completionTime} />
+                <CostDisplay 
+                  cost={currentJob.cost} 
+                  completionTime={completionTime} 
+                  isLive={isProcessing}
+                />
               </div>
             )}
             
@@ -590,6 +667,7 @@ function App() {
               onRegenerateImage={regenerateImage}
               onApproveScene={handleApproveScene}
               onEditScene={handleEditScene}
+              onCostUpdate={refreshCost}
               approvedScenes={approvedScenes}
             />
           </>

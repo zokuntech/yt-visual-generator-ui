@@ -2,15 +2,19 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { RefreshCw, ChevronDown, ChevronUp, Loader2, CheckCircle2, XCircle, Clock, Heart, Edit, Maximize2, Download, X } from 'lucide-react';
+import { RefreshCw, ChevronDown, ChevronUp, Loader2, CheckCircle2, XCircle, Clock, Heart, Edit, Maximize2, Download, X, Film, Play } from 'lucide-react';
 import EditSceneModal from './EditSceneModal';
 
-function SceneCard({ scene, index, onRegenerateImage, onApproveScene, onEditScene }) {
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+function SceneCard({ scene, index, onRegenerateImage, onApproveScene, onEditScene, onCostUpdate }) {
   const [showDetails, setShowDetails] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [videoStatus, setVideoStatus] = useState(scene.video_status || 'not_requested');
 
   // Log scene data for debugging
   React.useEffect(() => {
@@ -87,9 +91,101 @@ function SceneCard({ scene, index, onRegenerateImage, onApproveScene, onEditScen
     console.log(`💾 Downloaded scene ${index + 1} image`);
   };
 
+  const handleAnimate = async () => {
+    console.log(`🎬 Starting animation for scene ${index + 1}`);
+    setIsAnimating(true);
+    setVideoStatus('pending');
+
+    try {
+      const response = await fetch(`${API_URL}/scenes/${scene.id}/animate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          aspect_ratio: '16:9'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start animation');
+      }
+
+      const data = await response.json();
+      console.log(`✅ Animation started for scene ${index + 1}`, data);
+      setVideoStatus(data.video_status || 'pending');
+      
+      // Start polling for video status
+      pollVideoStatus();
+    } catch (error) {
+      console.error(`❌ Failed to animate scene ${index + 1}:`, error);
+      setVideoStatus('failed');
+      setIsAnimating(false);
+    }
+  };
+
+  const pollVideoStatus = async () => {
+    const maxPolls = 120; // 10 minutes max (5s intervals)
+    let pollCount = 0;
+
+    const interval = setInterval(async () => {
+      pollCount++;
+      
+      if (pollCount > maxPolls) {
+        console.error(`⏱️ Video generation timed out for scene ${index + 1}`);
+        clearInterval(interval);
+        setVideoStatus('failed');
+        setIsAnimating(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/scenes/${scene.id}/video-status`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to check video status');
+        }
+
+        const data = await response.json();
+        console.log(`📊 Video status poll #${pollCount} for scene ${index + 1}:`, data.video_status);
+        
+        setVideoStatus(data.video_status);
+
+        if (data.video_status === 'generated') {
+          console.log(`✅ Video ready for scene ${index + 1}!`);
+          clearInterval(interval);
+          setIsAnimating(false);
+          // Force re-render by updating the scene
+          scene.video_url = data.video_url;
+          scene.video_status = 'generated';
+          
+          // Update cost after video completes
+          if (onCostUpdate) {
+            console.log('💰 Updating cost after video completion...');
+            onCostUpdate();
+          }
+        } else if (data.video_status === 'failed') {
+          console.error(`❌ Video generation failed for scene ${index + 1}`);
+          clearInterval(interval);
+          setIsAnimating(false);
+        }
+      } catch (error) {
+        console.error(`❌ Error polling video status for scene ${index + 1}:`, error);
+        clearInterval(interval);
+        setVideoStatus('failed');
+        setIsAnimating(false);
+      }
+    }, 5000); // Poll every 5 seconds
+  };
+
+  // Update video status when scene changes
+  React.useEffect(() => {
+    if (scene.video_status) {
+      setVideoStatus(scene.video_status);
+    }
+  }, [scene.video_status]);
+
   return (
     <>
-      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white/95 backdrop-blur animate-in fade-in-50 slide-in-from-bottom-4" style={{ animationDelay: `${index * 100}ms` }}>
+      <Card id={`scene-${scene.id}`} className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white/95 backdrop-blur animate-in fade-in-50 slide-in-from-bottom-4" style={{ animationDelay: `${index * 100}ms` }}>
         {/* Header */}
         <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-800 text-white p-4">
           <div className="flex justify-between items-center">
@@ -108,9 +204,32 @@ function SceneCard({ scene, index, onRegenerateImage, onApproveScene, onEditScen
           </div>
         </CardHeader>
 
-        {/* Image */}
+        {/* Image / Video */}
         <div className="relative w-full h-64 bg-gray-100 overflow-hidden group">
-          {scene.image_status === 'generated' && scene.image_url ? (
+          {/* Show video if available */}
+          {videoStatus === 'generated' && scene.video_url ? (
+            <div className="relative w-full h-full">
+              <video
+                src={scene.video_url}
+                controls
+                loop
+                className="w-full h-full object-cover"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <div className="absolute top-2 left-2">
+                <Badge className="bg-blue-500 text-white">
+                  <Film className="w-3 h-3 mr-1" />
+                  Video
+                </Badge>
+              </div>
+            </div>
+          ) : videoStatus === 'pending' || videoStatus === 'processing' ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-purple-100">
+              <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-3" />
+              <p className="text-sm text-blue-800 font-medium">Animating scene...</p>
+              <p className="text-xs text-blue-600 mt-1">This may take 30s - 6min</p>
+            </div>
+          ) : scene.image_status === 'generated' && scene.image_url ? (
             <>
               <img 
                 src={scene.image_url} 
@@ -289,11 +408,12 @@ function SceneCard({ scene, index, onRegenerateImage, onApproveScene, onEditScen
         </CardContent>
 
         {/* Footer */}
-        <CardFooter className="p-4 pt-0">
+        <CardFooter className="p-4 pt-0 flex gap-2">
           <Button
-            className="w-full"
+            className="flex-1"
             onClick={handleRegenerate}
             disabled={isRegenerating || scene.image_status === 'pending'}
+            variant="outline"
           >
             {isRegenerating || scene.image_status === 'pending' ? (
               <>
@@ -303,7 +423,40 @@ function SceneCard({ scene, index, onRegenerateImage, onApproveScene, onEditScen
             ) : (
               <>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Regenerate Image
+                Regenerate
+              </>
+            )}
+          </Button>
+          
+          <Button
+            className="flex-1"
+            onClick={() => {
+              if (videoStatus === 'generated' && scene.video_url) {
+                // Video is ready, play it in the card area (it's already showing)
+                const videoElement = document.querySelector(`#scene-${scene.id} video`);
+                if (videoElement) {
+                  videoElement.play();
+                }
+              } else {
+                handleAnimate();
+              }
+            }}
+            disabled={isAnimating || videoStatus === 'pending' || videoStatus === 'processing' || scene.image_status !== 'generated'}
+          >
+            {isAnimating || videoStatus === 'pending' || videoStatus === 'processing' ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Animating...
+              </>
+            ) : videoStatus === 'generated' ? (
+              <>
+                <Play className="w-4 h-4 mr-2" />
+                Play Video
+              </>
+            ) : (
+              <>
+                <Film className="w-4 h-4 mr-2" />
+                Animate
               </>
             )}
           </Button>
