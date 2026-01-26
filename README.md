@@ -4,12 +4,15 @@ A beautiful, modern React application for generating AI-powered visual storyboar
 
 ## Features
 
-✨ **Drag & Drop File Upload** - Easy .doc/.docx file upload  
+✨ **Drag & Drop File Upload** - Easy .doc/.docx file upload or paste script text  
 🤖 **AI-Powered** - Automatic visual prompt generation  
 🎨 **Custom Style Control** - Choose art style, lighting, colors, and more  
-💰 **Cost Tracking** - See AI API costs in real-time  
+🎬 **B-Roll Support** - Dynamic mix of character scenes and B-roll footage  
+💰 **Live Cost Tracking** - Real-time AI API cost monitoring  
 📊 **Real-time Progress** - Live status updates during generation  
-🔄 **Image Regeneration** - Re-generate individual scene images  
+🔄 **Smart Editing** - AI-powered suggestions and instruction refinement  
+❤️ **Scene Approval** - Mark favorite scenes you want to keep  
+🎥 **Video Animation** - Turn images into 8-second videos with Veo 3.1  
 📱 **Mobile Responsive** - Works great on all devices  
 ⚡ **Fast & Modern** - Built with Vite and Tailwind CSS  
 
@@ -85,6 +88,52 @@ The app now uses a 4-step wizard flow for better control:
 - See total cost breakdown
 - Regenerate individual scenes
 - Create new storyboard
+
+## Key Features
+
+### 🎬 B-Roll & Dynamic Visuals
+
+The AI Director automatically creates a professional mix of:
+- **~40% Character Scenes** - Main person visible, talking, doing activities
+- **~60% B-Roll Scenes** - Objects, environments, details (no character)
+
+**B-roll scenes include:**
+- Object close-ups (coffee cup, phone, keyboard)
+- Environmental shots (sunrise, rain on window, empty street)
+- Detail shots (hands typing, feet walking)
+- Atmospheric visuals (shadows, reflections, weather)
+
+Each scene is clearly labeled with a badge: 👤 Character or 📷 B-Roll
+
+### ✏️ Smart Scene Editing
+
+Click "Edit" on any scene to:
+- **View AI Suggestions** - See what can be changed (pose, setting, lighting, camera)
+- **Refine Instructions** - Turn "make it better" into specific edits
+- **Apply Changes** - Regenerate with your edits
+
+Example edits:
+- "make the character smile warmly"
+- "change setting to coffee shop"  
+- "zoom in closer on the coffee cup" (for B-roll)
+- "add dramatic lighting"
+
+### 🎥 Video Animation
+
+Turn any scene into an 8-second video:
+- Powered by Google Veo 3.1
+- Works for both character and B-roll scenes
+- Takes 30s - 6min to generate
+- Cost: ~$0.09 per video
+
+### 💰 Live Cost Tracking
+
+Watch costs update in real-time:
+- AI Prompts (GPT-4)
+- AI Images (Gemini)
+- AI Videos (Veo 3.1)
+- Per-scene breakdown
+- Total job cost
 
 ## Project Structure
 

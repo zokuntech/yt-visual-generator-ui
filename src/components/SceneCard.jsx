@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { RefreshCw, ChevronDown, ChevronUp, Loader2, CheckCircle2, XCircle, Clock, Heart, Edit, Maximize2, Download, X, Film, Play } from 'lucide-react';
+import { RefreshCw, ChevronDown, ChevronUp, Loader2, CheckCircle2, XCircle, Clock, Heart, Edit, Maximize2, Download, X, Film, Play, User, Camera } from 'lucide-react';
 import EditSceneModal from './EditSceneModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 function SceneCard({ scene, index, onRegenerateImage, onApproveScene, onEditScene, onCostUpdate }) {
+  // Check if this is a B-roll scene (no characters)
+  const isBRoll = !scene.visual_prompt?.characters || scene.visual_prompt.characters.length === 0;
   const [showDetails, setShowDetails] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
@@ -191,6 +193,17 @@ function SceneCard({ scene, index, onRegenerateImage, onApproveScene, onEditScen
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <span className="font-semibold">Scene {index + 1}</span>
+              {isBRoll ? (
+                <Badge variant="secondary" className="bg-orange-500/90 text-white text-xs">
+                  <Camera className="w-3 h-3 mr-1" />
+                  B-Roll
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="bg-blue-500/90 text-white text-xs">
+                  <User className="w-3 h-3 mr-1" />
+                  Character
+                </Badge>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -383,6 +396,43 @@ function SceneCard({ scene, index, onRegenerateImage, onApproveScene, onEditScen
                       )}
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* B-Roll Info (when no characters) */}
+              {isBRoll && (
+                <div className="space-y-2">
+                  <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Camera className="w-4 h-4 text-orange-600" />
+                      <h4 className="font-semibold text-orange-900">B-Roll Scene</h4>
+                    </div>
+                    <p className="text-xs text-orange-700">
+                      This scene focuses on environmental, atmospheric, or detail shots without the main character visible.
+                    </p>
+                  </div>
+                  
+                  {/* Setting/Focus */}
+                  {scene.visual_prompt.setting && (
+                    <div className="bg-background p-3 rounded space-y-1">
+                      <h4 className="font-semibold text-primary text-sm">Visual Focus</h4>
+                      <p className="text-xs text-muted-foreground">{scene.visual_prompt.setting}</p>
+                    </div>
+                  )}
+                  
+                  {/* Props */}
+                  {scene.visual_prompt.props && scene.visual_prompt.props.length > 0 && (
+                    <div className="bg-background p-3 rounded space-y-1">
+                      <h4 className="font-semibold text-primary text-sm">Key Elements</h4>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {scene.visual_prompt.props.map((prop, idx) => (
+                          <Badge key={idx} variant="outline" className="text-xs">
+                            {prop}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
