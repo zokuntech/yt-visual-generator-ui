@@ -5,13 +5,16 @@ import StatusBar from './components/StatusBar';
 import SceneGrid from './components/SceneGrid';
 import StyleConfig from './components/StyleConfig';
 import CostDisplay from './components/CostDisplay';
+import ShortsGenerator from './components/ShortsGenerator';
 import { Button } from './components/ui/button';
 import { Card } from './components/ui/card';
-import { Film, AlertCircle, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Badge } from './components/ui/badge';
+import { Film, AlertCircle, X, ChevronDown, ChevronUp, FileText, Video } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 function App() {
+  const [mode, setMode] = useState('script'); // 'script' or 'shorts'
   const [scenes, setScenes] = useState([]);
   const [status, setStatus] = useState('idle');
   const [progress, setProgress] = useState(0);
@@ -556,21 +559,55 @@ function App() {
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <Card className="mb-8 bg-white/95 backdrop-blur">
-          <div className="p-8 text-center">
+          <div className="p-8">
             <div className="flex items-center justify-center gap-4 mb-4">
               <Film className="w-12 h-12 text-primary" />
               <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
                 YouTube Visual Generator
               </h1>
             </div>
-            <p className="text-lg text-muted-foreground">
-              Transform your script into stunning AI-generated visuals
+            <p className="text-lg text-muted-foreground text-center mb-6">
+              Create stunning AI-generated content for YouTube
             </p>
+            
+            {/* Mode Toggle */}
+            <div className="flex justify-center">
+              <div className="inline-flex rounded-lg border-2 border-primary/20 p-1 bg-gray-50">
+                <button
+                  onClick={() => setMode('script')}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-md transition-all font-medium ${
+                    mode === 'script'
+                      ? 'bg-primary text-white shadow-lg'
+                      : 'text-gray-600 hover:text-primary'
+                  }`}
+                >
+                  <FileText className="w-5 h-5" />
+                  <span>Script Storyboards</span>
+                  <Badge variant={mode === 'script' ? 'secondary' : 'outline'} className="ml-2">
+                    With Narration
+                  </Badge>
+                </button>
+                <button
+                  onClick={() => setMode('shorts')}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-md transition-all font-medium ${
+                    mode === 'shorts'
+                      ? 'bg-gradient-to-r from-orange-500 to-pink-600 text-white shadow-lg'
+                      : 'text-gray-600 hover:text-orange-500'
+                  }`}
+                >
+                  <Video className="w-5 h-5" />
+                  <span>Viral Shorts</span>
+                  <Badge variant={mode === 'shorts' ? 'secondary' : 'outline'} className="ml-2">
+                    No Narration
+                  </Badge>
+                </button>
+              </div>
+            </div>
           </div>
         </Card>
 
         {/* Error Banner */}
-        {error && (
+        {error && mode === 'script' && (
           <Card className="mb-6 border-destructive bg-destructive/10">
             <div className="p-4 flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
@@ -587,8 +624,11 @@ function App() {
           </Card>
         )}
 
-        {/* Main Content */}
-        {status === 'idle' && (
+        {/* Mode: Script Storyboards */}
+        {mode === 'script' && (
+          <>
+            {/* Main Content */}
+            {status === 'idle' && (
           <>
             <FileUpload onFileUpload={handleFileUpload} onTextSubmit={handleTextSubmit} />
             
@@ -671,6 +711,13 @@ function App() {
               approvedScenes={approvedScenes}
             />
           </>
+        )}
+          </>
+        )}
+
+        {/* Mode: Viral Shorts */}
+        {mode === 'shorts' && (
+          <ShortsGenerator />
         )}
       </div>
     </div>

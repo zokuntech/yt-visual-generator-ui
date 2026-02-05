@@ -59,35 +59,35 @@ The app will open at `http://localhost:3000`
 
 Ensure your backend API is running at `http://localhost:8000`
 
-## How to Use - Wizard Experience
+## How to Use
 
-The app now uses a 4-step wizard flow for better control:
+The app offers two powerful modes:
 
-### Step 1: Upload Script
-- Click or drag & drop your .doc/.docx file
-- (Optional) Click "Customize Visual Style" to configure:
-  - Art style (realistic, anime, cartoon, etc.)
-  - Lighting (natural, dramatic, studio, etc.)
-  - Color palette (warm, vibrant, muted, etc.)
-  - Background, character description, camera angles
-  - Aspect ratio (16:9, 9:16, 1:1, etc.)
+### 🎬 Mode 1: Script Storyboards (With Narration)
 
-### Step 2: Review Director's Plans ⭐ NEW!
-- AI Director analyzes your script's narrative structure
-- See emotional tone, energy level, camera intent for each scene
-- View props and setting recommendations
-- **Approve** to continue to generation
+Perfect for creating visuals to accompany your YouTube narration:
 
-### Step 3: Generate Visuals
-- Watch as AI creates detailed prompts and images
-- Real-time progress updates
-- See cost accumulating
+1. **Upload or Paste Script** - .doc/.docx file or direct text input
+2. **Customize Style** (Optional) - Art style, lighting, colors, aspect ratio
+3. **Generate** - AI creates scenes with character and B-roll mix
+4. **Review & Edit** - Approve scenes, edit prompts, regenerate images
+5. **Animate** (Optional) - Turn images into 8-second videos
 
-### Step 4: View Results
-- Browse your completed storyboard
-- See total cost breakdown
-- Regenerate individual scenes
-- Create new storyboard
+**Cost**: ~$0.002 per scene
+
+### 🎥 Mode 2: Viral Shorts (NO Narration)
+
+Create satisfying timelapse transformations with zero script writing:
+
+1. **Select Category** - Epoxy flooring, furniture, renovation, etc.
+2. **Choose Concept** - Pick from 10 AI-generated transformation ideas
+3. **Generate 6 Stages** - Empty → Prep (👷×2-3) → Installation (👷×3-4) → Finishing (👷×2-3) → Complete → Furnished
+4. **Export Assets** - Download images + 5 detailed transition prompts
+5. **Use External Tool** - Import to Runway, Pika, Kling, or any video tool
+
+**Cost**: ~$0.10-0.15 per short (much cheaper - no video generation)
+**Output**: 6 keyframe images + 5 transition prompts (150-300 words each)
+**Special**: Visual consistency maintained across all stages (same camera angle, room, lighting)
 
 ## Key Features
 
@@ -140,22 +140,25 @@ Watch costs update in real-time:
 ```
 src/
 ├── components/
-│   ├── ui/                # shadcn/ui components
+│   ├── ui/                    # shadcn/ui components
 │   │   ├── button.jsx
 │   │   ├── card.jsx
 │   │   ├── badge.jsx
-│   │   └── progress.jsx
-│   ├── FileUpload.jsx     # File upload component
-│   ├── StyleConfig.jsx    # Style customization UI
-│   ├── CostDisplay.jsx    # Cost tracking display
-│   ├── StatusBar.jsx      # Progress indicator
-│   ├── SceneGrid.jsx      # Grid layout for scenes
-│   └── SceneCard.jsx      # Individual scene card
+│   │   ├── progress.jsx
+│   │   └── ...
+│   ├── FileUpload.jsx         # File/text upload component
+│   ├── StyleConfig.jsx        # Style customization UI
+│   ├── CostDisplay.jsx        # Cost tracking display
+│   ├── StatusBar.jsx          # Progress indicator
+│   ├── SceneGrid.jsx          # Grid layout for scenes
+│   ├── SceneCard.jsx          # Individual scene card
+│   ├── EditSceneModal.jsx     # Scene editing with AI suggestions
+│   └── ShortsGenerator.jsx    # Viral Shorts workflow (NEW!)
 ├── lib/
-│   └── utils.js          # Utility functions
-├── App.jsx               # Main application
-├── main.jsx              # Entry point
-└── index.css             # Global styles + Tailwind
+│   └── utils.js              # Utility functions
+├── App.jsx                   # Main application with mode toggle
+├── main.jsx                  # Entry point
+└── index.css                 # Global styles + Tailwind
 ```
 
 ## shadcn/ui Components
@@ -173,10 +176,29 @@ To add more shadcn/ui components, visit [ui.shadcn.com](https://ui.shadcn.com) a
 
 This UI integrates with the YT Visual Generator Backend API:
 
-- `POST /jobs` - Create new job
+### Script Storyboards
+- `POST /jobs` - Create new storyboard job
 - `GET /jobs/{id}` - Check job status
+- `GET /jobs/{id}/cost` - Get live cost tracking
 - `GET /scenes/job/{id}` - Get all scenes
 - `POST /scenes/{id}/regenerate-image` - Regenerate image
+- `POST /scenes/{id}/regenerate-with-instruction` - Edit with text
+- `GET /scenes/{id}/edit-suggestions` - Get AI editing suggestions
+- `POST /scenes/{id}/animate` - Create 8-second video
+
+### Viral Shorts
+- `POST /shorts/concepts` - Generate 10 transformation ideas
+- `POST /shorts/create` - Create 6-stage project (with images + text prompts)
+- `GET /shorts/{id}` - Check project status & get all assets
+- `POST /shorts/{id}/stage/{n}/regenerate` - Regenerate a stage image
+- `POST /shorts/{id}/stage/{n}/edit` - Edit stage with text instruction
+- `GET /shorts/{id}/stage/{n}/edit-suggestions` - Get AI editing suggestions
+
+**Note**: Shorts NO LONGER generates videos. Instead, it provides:
+- 6 keyframe images (ready to download) - Stages 2, 3, 4 feature 2-4 workers
+- 5 detailed transition prompts (150-300 words each with continuity markers)
+- Visual consistency maintained (same camera angle, room layout, lighting)
+- Export as JSON for use with Runway, Pika, Kling, or any video tool
 
 For more details, see the [integration guide](context.md).
 
